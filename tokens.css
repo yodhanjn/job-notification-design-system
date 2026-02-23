@@ -1,0 +1,26 @@
+:root {
+  /* Colors (limited to 4) */
+  --color-background: #F7F6F3; /* off-white */
+  --color-text: #111111; /* primary text */
+  --color-accent: #8B0000; /* deep red */
+  --color-success: #4B8F6B; /* muted green */
+
+  /* Spacing scale (only these values) */
+  --space-8: 8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-40: 40px;
+  --space-64: 64px;
+
+  /* Typography */
+  --font-size-body: 16px; /* chosen within 16–18px */
+  --line-height: 1.7; /* between 1.6–1.8 */
+  --max-text-width: 720px;
+  --h1-size: 40px;
+  --h2-size: 28px;
+
+  /* Control */
+  --radius: 8px; /* consistent border radius */
+  --transition-duration: 180ms; /* 150–200ms */
+  --transition-timing: ease-in-out;
+}
