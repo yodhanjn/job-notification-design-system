@@ -495,9 +495,10 @@
       const prefs = loadPreferences();
       if (!prefs) return;
       document.getElementById('roleKeywords').value = prefs.roleKeywords || '';
-      // preferredLocations is multi-select
+      // preferredLocations dropdown
       const locs = prefs.preferredLocations || [];
-      const sel = document.getElementById('preferredLocations'); Array.from(sel.options).forEach(o=> o.selected = locs.includes(o.value));
+      const locSel = document.getElementById('preferredLocations');
+      Array.from(locSel.options).forEach(o=> o.selected = locs.includes(o.value));
       document.getElementById('modeRemote').checked = (prefs.preferredMode||[]).includes('Remote');
       document.getElementById('modeHybrid').checked = (prefs.preferredMode||[]).includes('Hybrid');
       document.getElementById('modeOnsite').checked = (prefs.preferredMode||[]).includes('Onsite');
@@ -507,11 +508,16 @@
       document.getElementById('minMatchScoreValue').textContent = document.getElementById('minMatchScore').value;
     }
 
-    // fill preferredLocations options based on available locations
+    // fill preferredLocations dropdown based on available locations
     (function populatePreferredLocations(){
       const sel = document.getElementById('preferredLocations');
       const locs = Array.from(new Set(JOBS.map(j=>j.location))).sort();
-      locs.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+      locs.forEach(l=>{
+        const o = document.createElement('option');
+        o.value = l;
+        o.textContent = l;
+        sel.appendChild(o);
+      });
     })();
 
     document.getElementById('minMatchScore').addEventListener('input', (e)=>{ document.getElementById('minMatchScoreValue').textContent = e.target.value; });
