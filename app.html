@@ -200,15 +200,9 @@
           <div style="height: var(--space-16)"></div>
 
           <label class="muted-small">Preferred locations</label>
-          <div style="position:relative;">
-            <button id="locDropdownBtn" class="input" style="width:100%; text-align:left; cursor:pointer; background:white; border:1px solid rgba(17,17,17,0.12); padding:var(--space-12); border-radius:var(--radius); font-size:16px; min-height:44px; display:flex; align-items:center; justify-content:space-between;">
-              <span id="locDropdownDisplay" style="font-size:16px;">Select locations...</span>
-              <span style="color:rgba(17,17,17,0.5); font-size:12px;">▼</span>
-            </button>
-            <div id="preferredLocationsContainer" style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid rgba(17,17,17,0.12); border-top:none; border-radius:0 0 var(--radius) var(--radius); z-index:10; max-height:250px; overflow-y:auto; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-              <!-- checkboxes filled dynamically -->
-            </div>
-          </div>
+          <select id="preferredLocations" class="input" multiple style="min-height:120px;">
+            <!-- options filled dynamically -->
+          </select>
 
           <div style="height: var(--space-16)"></div>
 
@@ -501,10 +495,9 @@
       const prefs = loadPreferences();
       if (!prefs) return;
       document.getElementById('roleKeywords').value = prefs.roleKeywords || '';
-      // preferredLocations checkboxes
+      // preferredLocations is multi-select
       const locs = prefs.preferredLocations || [];
-      document.querySelectorAll('[data-location-checkbox]').forEach(cb=> cb.checked = locs.includes(cb.value));
-      updateLocDropdownDisplay();
+      const sel = document.getElementById('preferredLocations'); Array.from(sel.options).forEach(o=> o.selected = locs.includes(o.value));
       document.getElementById('modeRemote').checked = (prefs.preferredMode||[]).includes('Remote');
       document.getElementById('modeHybrid').checked = (prefs.preferredMode||[]).includes('Hybrid');
       document.getElementById('modeOnsite').checked = (prefs.preferredMode||[]).includes('Onsite');
@@ -514,62 +507,19 @@
       document.getElementById('minMatchScoreValue').textContent = document.getElementById('minMatchScore').value;
     }
 
-    // fill preferredLocations dropdown based on available locations
+    // fill preferredLocations options based on available locations
     (function populatePreferredLocations(){
-      const container = document.getElementById('preferredLocationsContainer');
+      const sel = document.getElementById('preferredLocations');
       const locs = Array.from(new Set(JOBS.map(j=>j.location))).sort();
-      locs.forEach(l=>{
-        const label = document.createElement('label');
-        label.style.display = 'flex';
-        label.style.alignItems = 'center';
-        label.style.gap = 'var(--space-8)';
-        label.style.cursor = 'pointer';
-        label.style.padding = 'var(--space-8) var(--space-12)';
-        label.style.borderBottom = '1px solid rgba(17,17,17,0.06)';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.value = l;
-        cb.setAttribute('data-location-checkbox', 'true');
-        cb.addEventListener('change', updateLocDropdownDisplay);
-        const text = document.createElement('span');
-        text.textContent = l;
-        text.style.fontSize = '14px';
-        label.appendChild(cb);
-        label.appendChild(text);
-        container.appendChild(label);
-      });
+      locs.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
     })();
-
-    function updateLocDropdownDisplay() {
-      const selected = Array.from(document.querySelectorAll('[data-location-checkbox]:checked')).map(cb=>cb.value);
-      const display = document.getElementById('locDropdownDisplay');
-      if (selected.length === 0) {
-        display.textContent = 'Select locations...';
-      } else if (selected.length <= 2) {
-        display.textContent = selected.join(', ');
-      } else {
-        display.textContent = selected.length + ' locations selected';
-      }
-    }
-
-    const locDropdownBtn = document.getElementById('locDropdownBtn');
-    const locContainer = document.getElementById('preferredLocationsContainer');
-    locDropdownBtn.addEventListener('click', (e)=>{
-      e.preventDefault();
-      locContainer.style.display = locContainer.style.display === 'none' ? 'block' : 'none';
-    });
-    document.addEventListener('click', (e)=>{
-      if (!e.target.closest('[id^="locDropdown"]') && !e.target.closest('#preferredLocationsContainer')) {
-        locContainer.style.display = 'none';
-      }
-    });
 
     document.getElementById('minMatchScore').addEventListener('input', (e)=>{ document.getElementById('minMatchScoreValue').textContent = e.target.value; });
     document.getElementById('savePrefs').addEventListener('click', (e)=>{
       e.preventDefault();
       const prefs = {
         roleKeywords: document.getElementById('roleKeywords').value,
-        preferredLocations: Array.from(document.querySelectorAll('[data-location-checkbox]:checked')).map(cb=>cb.value),
+        preferredLocations: Array.from(document.getElementById('preferredLocations').selectedOptions).map(o=>o.value),
         preferredMode: ['Remote','Hybrid','Onsite'].filter(m=> document.getElementById('mode'+m).checked ),
         experienceLevel: document.getElementById('experienceLevel').value,
         skills: document.getElementById('skillsPref').value.split(',').map(s=>s.trim()).filter(Boolean),
