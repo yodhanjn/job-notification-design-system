@@ -140,7 +140,49 @@
     <section class="page-section" data-page="dashboard">
       <div class="page-content">
         <h1 class="page-heading">Dashboard</h1>
-        <p class="page-subtext">No jobs yet. In the next step, you will load a realistic dataset.</p>
+        <p class="page-subtext" style="margin-bottom:var(--space-24);">No jobs yet. In the next step, you will load a realistic dataset.</p>
+
+        <div class="card" style="margin-bottom: var(--space-24);">
+          <form id="filterForm" class="stack">
+            <div class="row" style="flex-wrap:wrap;">
+              <input id="q" class="input" placeholder="Search title or company" style="flex:1; min-width:220px;" />
+              <select id="location" class="input" style="width:200px;">
+                <option value="">All locations</option>
+              </select>
+              <select id="mode" class="input" style="width:160px;">
+                <option value="">Any mode</option>
+                <option>Remote</option>
+                <option>Hybrid</option>
+                <option>Onsite</option>
+              </select>
+            </div>
+
+            <div class="row" style="margin-top:var(--space-8); flex-wrap:wrap;">
+              <select id="experience" class="input" style="width:200px;">
+                <option value="">Any experience</option>
+                <option>Fresher</option>
+                <option>0-1</option>
+                <option>1-3</option>
+                <option>3-5</option>
+              </select>
+              <select id="source" class="input" style="width:200px;">
+                <option value="">Any source</option>
+                <option>LinkedIn</option>
+                <option>Naukri</option>
+                <option>Indeed</option>
+              </select>
+              <select id="sort" class="input" style="width:200px;">
+                <option value="latest">Sort: Latest</option>
+                <option value="oldest">Sort: Oldest</option>
+                <option value="salary-desc">Salary (high)</option>
+                <option value="salary-asc">Salary (low)</option>
+              </select>
+            </div>
+          </form>
+        </div>
+
+        <div id="jobsContainer" class="stack"></div>
+        <div id="noResults" class="muted-small" style="display:none; margin-top:var(--space-16);">No jobs match your search.</div>
       </div>
     </section>
 
@@ -215,6 +257,21 @@
       </div>
     </section>
   </main>
+
+  <!-- Job Modal -->
+  <div id="jobModal" style="display:none; position:fixed; inset:0; background: rgba(0,0,0,0.35); align-items:center; justify-content:center; padding:var(--space-24);">
+    <div style="background:white; border-radius:var(--radius); padding:var(--space-24); max-width:720px; width:100%;">
+      <button id="closeModal" class="btn btn-secondary" style="float:right;">Close</button>
+      <h2 id="modalTitle" class="page-heading" style="font-size:24px; margin-top:0;"></h2>
+      <p id="modalMeta" class="muted-small"></p>
+      <div id="modalSkills" style="margin-top:var(--space-16);"></div>
+      <p id="modalDesc" style="margin-top:var(--space-16); color: rgba(17,17,17,0.9);"></p>
+      <div style="margin-top:var(--space-16); display:flex; gap:var(--space-8);">
+        <a id="modalApply" class="btn btn-primary" target="_blank" rel="noopener">Apply</a>
+        <button id="modalSave" class="btn btn-secondary">Save</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Simple client-side router
@@ -299,6 +356,219 @@
     }
 
     initRouter();
+  </script>
+  <script>
+    /* Job dataset: 60 realistic Indian tech jobs */
+    const JOBS = [
+      { id: 'job-001', title: 'SDE Intern', company: 'Infosys', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Java','Data Structures'], source: 'Naukri', postedDaysAgo: 1, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://careers.infosys.com/apply/001', description: 'Work on foundational backend components and gain exposure to enterprise systems. Paired mentoring and hands-on training in Java and system design.' },
+      { id: 'job-002', title: 'Graduate Engineer Trainee', company: 'TCS', location: 'Hyderabad', mode: 'Onsite', experience: 'Fresher', skills: ['Java','Spring'], source: 'Naukri', postedDaysAgo: 3, salaryRange: '3–5 LPA', applyUrl: 'https://careers.tcs.com/apply/002', description: 'Join a rotational program focusing on enterprise applications. Training in software engineering best practices and client-facing projects.' },
+      { id: 'job-003', title: 'Junior Backend Developer', company: 'Wipro', location: 'Pune', mode: 'Hybrid', experience: '0-1', skills: ['Node.js','SQL'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '3–5 LPA', applyUrl: 'https://wipro.com/careers/3', description: 'Contribute to backend services and APIs. Work with product teams to deliver scalable microservices.' },
+      { id: 'job-004', title: 'Frontend Intern', company: 'Zoho', location: 'Chennai', mode: 'Onsite', experience: 'Fresher', skills: ['React','HTML','CSS'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://zoho.com/jobs/4', description: 'Build user interfaces for internal tools using React. Strong emphasis on clean UI and accessibility.' },
+      { id: 'job-005', title: 'QA Intern', company: 'Freshworks', location: 'Chennai', mode: 'Onsite', experience: 'Fresher', skills: ['Testing','Selenium'], source: 'Indeed', postedDaysAgo: 4, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://freshworks.com/jobs/5', description: 'Assist QA team in writing test cases and automating regression suites. Real product exposure and mentorship.' },
+      { id: 'job-006', title: 'Data Analyst Intern', company: 'CRED', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['SQL','Excel','Tableau'], source: 'LinkedIn', postedDaysAgo: 1, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://cred.club/jobs/6', description: 'Support analytics for product growth. Clean datasets, build dashboards, and produce insights for stakeholders.' },
+      { id: 'job-007', title: 'Java Developer (0-1)', company: 'Accenture', location: 'Mumbai', mode: 'Onsite', experience: '0-1', skills: ['Java','Spring Boot'], source: 'Naukri', postedDaysAgo: 5, salaryRange: '6–10 LPA', applyUrl: 'https://accenture.com/jobs/7', description: 'Develop enterprise-grade services for global clients. Hands-on in Java and microservices patterns.' },
+      { id: 'job-008', title: 'Python Developer (Fresher)', company: 'Zoho', location: 'Chennai', mode: 'Hybrid', experience: 'Fresher', skills: ['Python','Django'], source: 'Indeed', postedDaysAgo: 2, salaryRange: '3–5 LPA', applyUrl: 'https://zoho.com/careers/8', description: 'Work on backend APIs and integrations with third-party services. Learning-first environment.' },
+      { id: 'job-009', title: 'React Developer (1-3)', company: 'Amazon', location: 'Bengaluru', mode: 'Onsite', experience: '1-3', skills: ['React','TypeScript'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '10–18 LPA', applyUrl: 'https://amazon.jobs/9', description: 'Build customer-facing components for high-scale web applications. Emphasis on performance and maintainability.' },
+      { id: 'job-010', title: 'SDE Intern', company: 'Flipkart', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Java','Algorithms'], source: 'LinkedIn', postedDaysAgo: 1, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://flipkartcareers.com/apply/10', description: 'Interns work on platform features with mentor guidance and code reviews. Great exposure to large-scale systems.' },
+      { id: 'job-011', title: 'Junior Backend Developer', company: 'Razorpay', location: 'Bengaluru', mode: 'Hybrid', experience: '0-1', skills: ['Node.js','Payments'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '6–10 LPA', applyUrl: 'https://razorpay.com/careers/11', description: 'Work on payment flows and integrations. Focus on reliability, observability, and API design.' },
+      { id: 'job-012', title: 'Frontend Intern', company: 'Swiggy', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['React','CSS'], source: 'Naukri', postedDaysAgo: 3, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://swiggy.com/jobs/12', description: 'Contribute to the rider and customer web experiences. Learn product-driven UI development.' },
+      { id: 'job-013', title: 'SDE Intern', company: 'PhonePe', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Kotlin','Android'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://phonepe.com/careers/13', description: 'Mobile engineering internship focused on native Android features and performance.' },
+      { id: 'job-014', title: 'QA Intern', company: 'IBM', location: 'Hyderabad', mode: 'Hybrid', experience: 'Fresher', skills: ['Testing','API'], source: 'Indeed', postedDaysAgo: 6, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://ibm.com/jobs/14', description: 'QA role within cloud services, focusing on API testing and automation frameworks.' },
+      { id: 'job-015', title: 'Data Analyst Intern', company: 'Freshworks', location: 'Chennai', mode: 'Onsite', experience: 'Fresher', skills: ['SQL','Python'], source: 'Naukri', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://freshworks.com/careers/15', description: 'Work with growth and analytics teams to track user funnels and metrics.' },
+      { id: 'job-016', title: 'React Developer (1-3)', company: 'Juspay', location: 'Bengaluru', mode: 'Hybrid', experience: '1-3', skills: ['React','Payments'], source: 'LinkedIn', postedDaysAgo: 4, salaryRange: '6–10 LPA', applyUrl: 'https://juspay.in/jobs/16', description: 'Front-end developer for payments UI, with focus on accessibility and performance.' },
+      { id: 'job-017', title: 'Python Developer (Fresher)', company: 'Cognizant', location: 'Chennai', mode: 'Onsite', experience: 'Fresher', skills: ['Python','Flask'], source: 'Naukri', postedDaysAgo: 5, salaryRange: '3–5 LPA', applyUrl: 'https://cognizant.com/careers/17', description: 'Entry role contributing to backend services and integrations in a consulting environment.' },
+      { id: 'job-018', title: 'Java Developer (0-1)', company: 'Capgemini', location: 'Mumbai', mode: 'Hybrid', experience: '0-1', skills: ['Java','SQL'], source: 'Indeed', postedDaysAgo: 1, salaryRange: '3–5 LPA', applyUrl: 'https://capgemini.com/jobs/18', description: 'Work on enterprise applications; mentorship and training provided.' },
+      { id: 'job-019', title: 'Junior Backend Developer', company: 'Oracle', location: 'Bengaluru', mode: 'Onsite', experience: '0-1', skills: ['Java','Cloud'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '6–10 LPA', applyUrl: 'https://oracle.com/careers/19', description: 'Backend role in cloud services, focusing on reliability and scale.' },
+      { id: 'job-020', title: 'SDE Intern', company: 'SAP', location: 'Pune', mode: 'Onsite', experience: 'Fresher', skills: ['Java','ABAP'], source: 'Naukri', postedDaysAgo: 3, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://sap.com/jobs/20', description: 'Interns contribute to enterprise modules and get exposure to international product teams.' },
+      { id: 'job-021', title: 'Frontend Intern', company: 'Dell', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['React','CSS'], source: 'Indeed', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://dell.com/careers/21', description: 'Work on internal dashboards and product pages, with mentorship from senior engineers.' },
+      { id: 'job-022', title: 'Junior Backend Developer', company: 'Oracle', location: 'Mumbai', mode: 'Hybrid', experience: '1-3', skills: ['Node.js','Postgres'], source: 'LinkedIn', postedDaysAgo: 4, salaryRange: '6–10 LPA', applyUrl: 'https://oracle.com/careers/22', description: 'Backend role for cloud-native services, emphasize observability and testing.' },
+      { id: 'job-023', title: 'React Developer (1-3)', company: 'Zoho', location: 'Chennai', mode: 'Onsite', experience: '1-3', skills: ['React','TypeScript'], source: 'Naukri', postedDaysAgo: 5, salaryRange: '6–10 LPA', applyUrl: 'https://zoho.com/jobs/23', description: 'Develop customer-facing interfaces with focus on UX and accessibility.' },
+      { id: 'job-024', title: 'Python Developer (Fresher)', company: 'IBM', location: 'Pune', mode: 'Onsite', experience: 'Fresher', skills: ['Python','AI'], source: 'LinkedIn', postedDaysAgo: 6, salaryRange: '3–5 LPA', applyUrl: 'https://ibm.com/jobs/24', description: 'Entry-level role supporting data pipelines and ML model evaluation.' },
+      { id: 'job-025', title: 'SDE Intern', company: 'Paytm', location: 'Noida', mode: 'Onsite', experience: 'Fresher', skills: ['Java','Payments'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://paytm.com/careers/25', description: 'Internship on payment gateway systems, strong mentorship and learning.' },
+      { id: 'job-026', title: 'Junior Backend Developer', company: 'Amazon', location: 'Hyderabad', mode: 'Onsite', experience: '1-3', skills: ['Java','AWS'], source: 'Indeed', postedDaysAgo: 2, salaryRange: '10–18 LPA', applyUrl: 'https://amazon.jobs/26', description: 'Backend engineer working on large-scale services with customer focus and operational excellence.' },
+      { id: 'job-027', title: 'QA Intern', company: 'Cognizant', location: 'Pune', mode: 'Hybrid', experience: 'Fresher', skills: ['Testing','Automation'], source: 'Naukri', postedDaysAgo: 7, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://cognizant.com/jobs/27', description: 'QA role focused on building automation and test frameworks for enterprise applications.' },
+      { id: 'job-028', title: 'Data Analyst Intern', company: 'Zoho', location: 'Chennai', mode: 'Onsite', experience: 'Fresher', skills: ['SQL','BI'], source: 'LinkedIn', postedDaysAgo: 1, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://zoho.com/jobs/28', description: 'Support analytics efforts and generate dashboards for product and sales teams.' },
+      { id: 'job-029', title: 'React Developer (1-3)', company: 'Freshworks', location: 'Chennai', mode: 'Hybrid', experience: '1-3', skills: ['React','Redux'], source: 'Indeed', postedDaysAgo: 3, salaryRange: '6–10 LPA', applyUrl: 'https://freshworks.com/careers/29', description: 'Frontend developer building customer workflows with attention to UX.' },
+      { id: 'job-030', title: 'Junior Backend Developer', company: 'CRED', location: 'Bengaluru', mode: 'Hybrid', experience: '1-3', skills: ['Go','Postgres'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '10–18 LPA', applyUrl: 'https://cred.club/jobs/30', description: 'Backend engineer in financial services, focusing on resiliency and payments.' },
+      { id: 'job-031', title: 'SDE Intern', company: 'Juspay', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['JavaScript','Payments'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://juspay.in/jobs/31', description: 'Internship working on payment integrations and frontend reliability.' },
+      { id: 'job-032', title: 'Java Developer (0-1)', company: 'Infosys', location: 'Mysore', mode: 'Onsite', experience: '0-1', skills: ['Java','SQL'], source: 'Naukri', postedDaysAgo: 4, salaryRange: '3–5 LPA', applyUrl: 'https://careers.infosys.com/apply/32', description: 'Initial development role in enterprise projects with a focus on learning and support.' },
+      { id: 'job-033', title: 'Python Developer (Fresher)', company: 'Oracle', location: 'Hyderabad', mode: 'Onsite', experience: 'Fresher', skills: ['Python','APIs'], source: 'Indeed', postedDaysAgo: 5, salaryRange: '3–5 LPA', applyUrl: 'https://oracle.com/careers/33', description: 'Entry-level backend role contributing to API services and integrations.' },
+      { id: 'job-034', title: 'Frontend Intern', company: 'Razorpay', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['React','CSS'], source: 'LinkedIn', postedDaysAgo: 6, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://razorpay.com/careers/34', description: 'Intern focused on merchant dashboards and UX improvements.' },
+      { id: 'job-035', title: 'Junior Backend Developer', company: 'Capgemini', location: 'Pune', mode: 'Onsite', experience: '1-3', skills: ['Java','Microservices'], source: 'Naukri', postedDaysAgo: 2, salaryRange: '3–5 LPA', applyUrl: 'https://capgemini.com/jobs/35', description: 'Backend development within consulting teams for diverse client projects.' },
+      { id: 'job-036', title: 'React Developer (1-3)', company: 'PhonePe', location: 'Bengaluru', mode: 'Onsite', experience: '1-3', skills: ['React','TypeScript'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '10–18 LPA', applyUrl: 'https://phonepe.com/careers/36', description: 'Frontend engineer building payment experiences used by millions.' },
+      { id: 'job-037', title: 'Data Analyst Intern', company: 'Amazon', location: 'Hyderabad', mode: 'Onsite', experience: 'Fresher', skills: ['SQL','Python'], source: 'Indeed', postedDaysAgo: 3, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://amazon.jobs/37', description: 'Support data teams to extract insights for operations and product teams.' },
+      { id: 'job-038', title: 'QA Intern', company: 'Flipkart', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Testing','Manual'], source: 'Naukri', postedDaysAgo: 1, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://flipkartcareers.com/38', description: 'Manual and exploratory testing for ecommerce features.' },
+      { id: 'job-039', title: 'Junior Backend Developer', company: 'SAP', location: 'Bengaluru', mode: 'Hybrid', experience: '1-3', skills: ['Java','Cloud'], source: 'LinkedIn', postedDaysAgo: 7, salaryRange: '6–10 LPA', applyUrl: 'https://sap.com/jobs/39', description: 'Backend engineering for enterprise cloud modules and integrations.' },
+      { id: 'job-040', title: 'SDE Intern', company: 'Dell', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['Python','DevOps'], source: 'Indeed', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://dell.com/careers/40', description: 'Intern on cloud automation and internal developer tools.' },
+      { id: 'job-041', title: 'React Developer (1-3)', company: 'Swiggy', location: 'Gurugram', mode: 'Hybrid', experience: '1-3', skills: ['React','Redux'], source: 'LinkedIn', postedDaysAgo: 4, salaryRange: '6–10 LPA', applyUrl: 'https://swiggy.com/jobs/41', description: 'Build real-time components for delivery and order flows.' },
+      { id: 'job-042', title: 'Python Developer (Fresher)', company: 'Juspay', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Python','APIs'], source: 'LinkedIn', postedDaysAgo: 5, salaryRange: '3–5 LPA', applyUrl: 'https://juspay.in/jobs/42', description: 'Support backend services for payments and integrations.' },
+      { id: 'job-043', title: 'Junior Backend Developer', company: 'Cognizant', location: 'Noida', mode: 'Hybrid', experience: '0-1', skills: ['Node.js','SQL'], source: 'Naukri', postedDaysAgo: 6, salaryRange: '3–5 LPA', applyUrl: 'https://cognizant.com/careers/43', description: 'Work on client projects and backend microservices.' },
+      { id: 'job-044', title: 'Frontend Intern', company: 'Zoho', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Vue','HTML'], source: 'Indeed', postedDaysAgo: 0, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://zoho.com/jobs/44', description: 'Internship focused on frontend components and internal tools.' },
+      { id: 'job-045', title: 'SDE Intern', company: 'Razorpay', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Go','APIs'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://razorpay.com/careers/45', description: 'Intern on backend services for payment processing.' },
+      { id: 'job-046', title: 'Junior Backend Developer', company: 'Accenture', location: 'Mumbai', mode: 'Hybrid', experience: '1-3', skills: ['Java','Spring'], source: 'Naukri', postedDaysAgo: 8, salaryRange: '6–10 LPA', applyUrl: 'https://accenture.com/jobs/46', description: 'Backend developer supporting enterprise customers and integrations.' },
+      { id: 'job-047', title: 'Data Analyst Intern', company: 'PhonePe', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['SQL','Python'], source: 'LinkedIn', postedDaysAgo: 1, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://phonepe.com/careers/47', description: 'Work with data teams to provide insights on transactions and engagement.' },
+      { id: 'job-048', title: 'React Developer (1-3)', company: 'Freshworks', location: 'Chennai', mode: 'Hybrid', experience: '1-3', skills: ['React','TypeScript'], source: 'Indeed', postedDaysAgo: 3, salaryRange: '6–10 LPA', applyUrl: 'https://freshworks.com/careers/48', description: 'Frontend engineer building customer-facing modules and dashboards.' },
+      { id: 'job-049', title: 'Python Developer (Fresher)', company: 'Juspay', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['Python','Payments'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '3–5 LPA', applyUrl: 'https://juspay.in/jobs/49', description: 'Backend role focusing on payments and integrations.' },
+      { id: 'job-050', title: 'Junior Backend Developer', company: 'Zoho', location: 'Chennai', mode: 'Hybrid', experience: '1-3', skills: ['Java','MySQL'], source: 'Naukri', postedDaysAgo: 5, salaryRange: '6–10 LPA', applyUrl: 'https://zoho.com/jobs/50', description: 'Build and maintain backend services for SaaS products.' },
+      { id: 'job-051', title: 'Frontend Intern', company: 'Swiggy', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['React','CSS'], source: 'LinkedIn', postedDaysAgo: 0, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://swiggy.com/jobs/51', description: 'Work on customer web experiences and UI components.' },
+      { id: 'job-052', title: 'SDE Intern', company: 'CRED', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['Kotlin','Android'], source: 'Indeed', postedDaysAgo: 4, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://cred.club/jobs/52', description: 'Mobile internship with product teams focused on Android.' },
+      { id: 'job-053', title: 'Junior Backend Developer', company: 'Oracle', location: 'Bengaluru', mode: 'Onsite', experience: '1-3', skills: ['Python','Cloud'], source: 'LinkedIn', postedDaysAgo: 6, salaryRange: '6–10 LPA', applyUrl: 'https://oracle.com/careers/53', description: 'Backend engineer for cloud-based offerings and services.' },
+      { id: 'job-054', title: 'Data Analyst Intern', company: 'Dell', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['Excel','SQL'], source: 'Naukri', postedDaysAgo: 7, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://dell.com/careers/54', description: 'Assist analytics and operations teams with reporting and dashboards.' },
+      { id: 'job-055', title: 'React Developer (1-3)', company: 'Flipkart', location: 'Bengaluru', mode: 'Onsite', experience: '1-3', skills: ['React','Performance'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '10–18 LPA', applyUrl: 'https://flipkartcareers.com/55', description: 'Frontend role focusing on high-performance ecommerce experiences.' },
+      { id: 'job-056', title: 'Junior Backend Developer', company: 'Capgemini', location: 'Mumbai', mode: 'Onsite', experience: '0-1', skills: ['Java','APIs'], source: 'Indeed', postedDaysAgo: 8, salaryRange: '3–5 LPA', applyUrl: 'https://capgemini.com/jobs/56', description: 'Work on API development and integration for enterprise clients.' },
+      { id: 'job-057', title: 'Python Developer (Fresher)', company: 'Razorpay', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['Python','Payments'], source: 'LinkedIn', postedDaysAgo: 1, salaryRange: '3–5 LPA', applyUrl: 'https://razorpay.com/careers/57', description: 'Entry role focused on backend services for payment flows.' },
+      { id: 'job-058', title: 'Frontend Intern', company: 'Juspay', location: 'Bengaluru', mode: 'Onsite', experience: 'Fresher', skills: ['HTML','CSS','JS'], source: 'Naukri', postedDaysAgo: 3, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://juspay.in/jobs/58', description: 'Small team internship building merchant-facing frontends.' },
+      { id: 'job-059', title: 'Junior Backend Developer', company: 'Freshworks', location: 'Chennai', mode: 'Hybrid', experience: '1-3', skills: ['Node.js','MongoDB'], source: 'Indeed', postedDaysAgo: 0, salaryRange: '6–10 LPA', applyUrl: 'https://freshworks.com/careers/59', description: 'Backend engineer building SaaS product features and APIs.' },
+      { id: 'job-060', title: 'SDE Intern', company: 'Startup Labs', location: 'Bengaluru', mode: 'Hybrid', experience: 'Fresher', skills: ['Fullstack','React','Node'], source: 'LinkedIn', postedDaysAgo: 2, salaryRange: '₹15k–₹40k/month Internship', applyUrl: 'https://startuplabs.in/jobs/60', description: 'Work across the stack at an early-stage startup. Broad responsibilities and fast learning.' }
+    ];
+
+    const savedKey = 'jn_saved_jobs_v1';
+
+    function formatPosted(days) {
+      return days === 0 ? 'today' : (days === 1 ? '1 day ago' : `${days} days ago`);
+    }
+
+    function parseSalaryToNumber(range) {
+      // crude mapping for sorting: map by lower bound LPA or monthly
+      if (!range) return 0;
+      if (range.includes('LPA')) {
+        const m = range.match(/(\d+)/);
+        return m ? parseInt(m[1],10) : 0;
+      }
+      return 0;
+    }
+
+    function getSavedIds() {
+      try { return JSON.parse(localStorage.getItem(savedKey)) || []; } catch(e) { return []; }
+    }
+
+    function setSavedIds(ids) { localStorage.setItem(savedKey, JSON.stringify(ids)); }
+
+    function isSaved(id) { return getSavedIds().includes(id); }
+
+    function toggleSave(id) {
+      const ids = getSavedIds();
+      const idx = ids.indexOf(id);
+      if (idx === -1) ids.push(id); else ids.splice(idx,1);
+      setSavedIds(ids);
+      renderJobs(currentJobs);
+      if (currentRoute === 'saved') renderSaved();
+    }
+
+    // Build filter options
+    const locations = Array.from(new Set(JOBS.map(j=>j.location))).sort();
+    const locSelect = document.getElementById('location');
+    locations.forEach(l => { const o=document.createElement('option'); o.value=l; o.textContent=l; locSelect.appendChild(o); });
+
+    let currentJobs = JOBS.slice();
+    let currentRoute = 'landing';
+
+    function buildCard(job) {
+      const saved = isSaved(job.id);
+      const card = document.createElement('div'); card.className = 'card';
+      card.style.display = 'flex'; card.style.justifyContent='space-between'; card.style.alignItems='flex-start';
+      const left = document.createElement('div'); left.style.flex='1';
+      const title = document.createElement('div'); title.className='page-heading'; title.style.fontSize='18px'; title.textContent = job.title;
+      const meta = document.createElement('div'); meta.className='muted-small'; meta.style.marginTop='8px'; meta.textContent = `${job.company} • ${job.location} • ${job.mode} • ${job.experience}`;
+      const salary = document.createElement('div'); salary.className='muted-small'; salary.style.marginTop='8px'; salary.textContent = `${job.salaryRange} • ${job.source} • ${formatPosted(job.postedDaysAgo)}`;
+      left.appendChild(title); left.appendChild(meta); left.appendChild(salary);
+
+      const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
+      const viewBtn = document.createElement('button'); viewBtn.className='btn btn-secondary'; viewBtn.textContent='View';
+      viewBtn.addEventListener('click', ()=> openModal(job));
+      const saveBtn = document.createElement('button'); saveBtn.className='btn'; saveBtn.textContent = saved ? 'Saved' : 'Save';
+      saveBtn.style.border = '1px solid rgba(17,17,17,0.12)';
+      saveBtn.addEventListener('click', ()=> { toggleSave(job.id); });
+      const applyBtn = document.createElement('a'); applyBtn.className='btn btn-primary'; applyBtn.textContent='Apply'; applyBtn.href = job.applyUrl; applyBtn.target='_blank'; applyBtn.rel='noopener';
+      actions.appendChild(viewBtn); actions.appendChild(saveBtn); actions.appendChild(applyBtn);
+
+      card.appendChild(left); card.appendChild(actions);
+      return card;
+    }
+
+    function renderJobs(list) {
+      currentJobs = list.slice();
+      const container = document.getElementById('jobsContainer');
+      container.innerHTML='';
+      if (!list || list.length===0) { document.getElementById('noResults').style.display='block'; return; }
+      document.getElementById('noResults').style.display='none';
+      list.forEach(job=> container.appendChild(buildCard(job)));
+    }
+
+    function openModal(job) {
+      document.getElementById('jobModal').style.display = 'flex';
+      document.getElementById('modalTitle').textContent = `${job.title} — ${job.company}`;
+      document.getElementById('modalMeta').textContent = `${job.location} • ${job.mode} • ${job.experience} • ${job.salaryRange}`;
+      document.getElementById('modalSkills').innerHTML = job.skills.map(s=>`<span class="card" style="display:inline-block;margin-right:8px;padding:6px;border-radius:6px;">${s}</span>`).join('');
+      document.getElementById('modalDesc').textContent = job.description;
+      document.getElementById('modalApply').href = job.applyUrl;
+      document.getElementById('modalSave').textContent = isSaved(job.id) ? 'Saved' : 'Save';
+      document.getElementById('modalSave').onclick = ()=>{ toggleSave(job.id); document.getElementById('modalSave').textContent = isSaved(job.id) ? 'Saved' : 'Save'; };
+    }
+
+    document.getElementById('closeModal').addEventListener('click', ()=>{ document.getElementById('jobModal').style.display='none'; });
+
+    // Filters
+    const qInput = document.getElementById('q');
+    const locInput = document.getElementById('location');
+    const modeInput = document.getElementById('mode');
+    const expInput = document.getElementById('experience');
+    const srcInput = document.getElementById('source');
+    const sortInput = document.getElementById('sort');
+
+    function applyFilters() {
+      let res = JOBS.slice();
+      const q = qInput.value.trim().toLowerCase();
+      if (q) res = res.filter(j=> (j.title+j.company).toLowerCase().includes(q));
+      if (locInput.value) res = res.filter(j=> j.location === locInput.value);
+      if (modeInput.value) res = res.filter(j=> j.mode === modeInput.value);
+      if (expInput.value) res = res.filter(j=> j.experience === expInput.value);
+      if (srcInput.value) res = res.filter(j=> j.source === srcInput.value);
+      const sort = sortInput.value;
+      if (sort === 'latest') res.sort((a,b)=> a.postedDaysAgo - b.postedDaysAgo);
+      else if (sort === 'oldest') res.sort((a,b)=> b.postedDaysAgo - a.postedDaysAgo);
+      else if (sort === 'salary-desc') res.sort((a,b)=> parseSalaryToNumber(b.salaryRange) - parseSalaryToNumber(a.salaryRange));
+      else if (sort === 'salary-asc') res.sort((a,b)=> parseSalaryToNumber(a.salaryRange) - parseSalaryToNumber(b.salaryRange));
+      renderJobs(res);
+    }
+
+    [qInput, locInput, modeInput, expInput, srcInput, sortInput].forEach(el => el && el.addEventListener('input', applyFilters));
+
+    // Populate source dropdown
+    const sources = Array.from(new Set(JOBS.map(j=>j.source))).sort();
+    const srcSelect = document.getElementById('source');
+    sources.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; srcSelect.appendChild(o); });
+
+    // Initial render
+    applyFilters();
+
+    // Saved page rendering
+    function renderSaved() {
+      const ids = getSavedIds();
+      const list = JOBS.filter(j=> ids.includes(j.id));
+      const container = document.querySelector('[data-page="saved"] .page-content');
+      const target = container.querySelector('#savedList');
+      if (!target) {
+        const div = document.createElement('div'); div.id='savedList'; container.appendChild(div);
+      }
+      const savedContainer = document.getElementById('savedList'); savedContainer.innerHTML='';
+      if (list.length === 0) {
+        savedContainer.innerHTML = '<div class="card"><p class="page-subtext">No saved jobs yet. Save jobs from the Dashboard to see them here.</p></div>';
+        return;
+      }
+      list.forEach(job => savedContainer.appendChild(buildCard(job)));
+    }
+
+    // Ensure saved page shows updated content on route change
+    // Hook into navigate to call renderSaved when needed by overwriting navigate
+    const originalNavigate = navigate;
+    window.navigate = function(pageName) {
+      originalNavigate(pageName);
+      currentRoute = pageName;
+      if (pageName === 'dashboard') applyFilters();
+      if (pageName === 'saved') renderSaved();
+    };
+
   </script>
 </body>
 </html>
