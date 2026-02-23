@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Job Notification App</title>
+  <link rel="stylesheet" href="./tokens.css">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./components.css">
+  <style>
+    /* Navigation Styles */
+    .nav-bar { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      gap: var(--space-24); 
+      padding: var(--space-16) var(--space-24); 
+      background: var(--color-background); 
+      border-bottom: 1px solid rgba(17,17,17,0.06); 
+    }
+    .nav-brand { 
+      font-weight: 700; 
+      font-size: 16px; 
+      white-space: nowrap;
+    }
+    .nav-links { 
+      display: flex; 
+      gap: var(--space-24); 
+      list-style: none; 
+      margin: 0; 
+      padding: 0; 
+      align-items: center;
+      flex: 1;
+    }
+    .nav-links a { 
+      text-decoration: none; 
+      color: var(--color-text); 
+      font-weight: 500; 
+      padding-bottom: 4px; 
+      border-bottom: 2px solid transparent; 
+      transition: border-color var(--transition-duration) var(--transition-timing); 
+    }
+    .nav-links a:hover { 
+      border-bottom-color: rgba(139,0,0,0.3); 
+    }
+    .nav-links a.active { 
+      border-bottom-color: var(--color-accent); 
+      font-weight: 600;
+    }
+    .nav-toggle { 
+      display: none; 
+      background: none; 
+      border: none; 
+      cursor: pointer; 
+      padding: var(--space-8); 
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-toggle span { 
+      display: block; 
+      width: 24px; 
+      height: 2px; 
+      background: var(--color-text); 
+      transition: all var(--transition-duration) var(--transition-timing); 
+    }
+    .nav-toggle.open span:nth-child(1) { transform: rotate(45deg) translateY(10px); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: rotate(-45deg) translateY(-10px); }
+
+    @media (max-width: 768px) {
+      .nav-links { 
+        position: absolute; 
+        top: 60px; 
+        left: 0; 
+        right: 0; 
+        flex-direction: column; 
+        background: var(--color-background); 
+        border-bottom: 1px solid rgba(17,17,17,0.06); 
+        padding: var(--space-16);
+        gap: var(--space-16); 
+        max-height: 0; 
+        overflow: hidden; 
+        transition: max-height var(--transition-duration) var(--transition-timing); 
+        z-index: 100;
+      }
+      .nav-links.open { 
+        max-height: 400px; 
+      }
+      .nav-toggle { 
+        display: flex; 
+      }
+    }
+
+    /* Page Content */
+    .app-container { min-height: calc(100vh - 60px); }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+    .page-content { padding: var(--space-64) var(--space-24); max-width: 1200px; margin: 0 auto; }
+    .page-heading { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 40px; margin: 0 0 var(--space-16) 0; line-height: 1.15; color: var(--color-text); }
+    .page-subtext { font-size: 16px; color: rgba(17,17,17,0.7); line-height: 1.7; margin: 0; }
+
+    /* 404 Page */
+    .not-found-container { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); padding: var(--space-24); }
+    .not-found-content { text-align: center; max-width: 500px; }
+    .not-found-heading { font-size: 48px; color: var(--color-accent); margin: 0 0 var(--space-24) 0; }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <div class="nav-brand">Job Notification App</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/" data-route="home">Dashboard</a></li>
+      <li><a href="/saved" data-route="saved">Saved</a></li>
+      <li><a href="/digest" data-route="digest">Digest</a></li>
+      <li><a href="/settings" data-route="settings">Settings</a></li>
+      <li><a href="/proof" data-route="proof">Proof</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+
+  <!-- Page Content -->
+  <main class="app-container">
+    <!-- Dashboard / Home -->
+    <section class="page-section active" data-page="home">
+      <div class="page-content">
+        <h1 class="page-heading">Dashboard</h1>
+        <p class="page-subtext">This section will be built in the next step.</p>
+      </div>
+    </section>
+
+    <!-- Saved -->
+    <section class="page-section" data-page="saved">
+      <div class="page-content">
+        <h1 class="page-heading">Saved</h1>
+        <p class="page-subtext">This section will be built in the next step.</p>
+      </div>
+    </section>
+
+    <!-- Digest -->
+    <section class="page-section" data-page="digest">
+      <div class="page-content">
+        <h1 class="page-heading">Digest</h1>
+        <p class="page-subtext">This section will be built in the next step.</p>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="page-section" data-page="settings">
+      <div class="page-content">
+        <h1 class="page-heading">Settings</h1>
+        <p class="page-subtext">This section will be built in the next step.</p>
+      </div>
+    </section>
+
+    <!-- Proof -->
+    <section class="page-section" data-page="proof">
+      <div class="page-content">
+        <h1 class="page-heading">Proof</h1>
+        <p class="page-subtext">This section will be built in the next step.</p>
+      </div>
+    </section>
+
+    <!-- 404 Not Found -->
+    <section class="page-section" data-page="not-found">
+      <div class="not-found-container">
+        <div class="not-found-content">
+          <h1 class="page-heading" style="font-size: 48px; color: var(--color-accent);">Page Not Found</h1>
+          <p class="page-subtext">The page you are looking for does not exist.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Simple client-side router
+    const routeMap = {
+      '/': 'home',
+      '/dashboard': 'home',
+      '/saved': 'saved',
+      '/digest': 'digest',
+      '/settings': 'settings',
+      '/proof': 'proof'
+    };
+
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    const navLinksAll = navLinks.querySelectorAll('a');
+
+    // Hamburger menu toggle
+    navToggle.addEventListener('click', () => {
+      navToggle.classList.toggle('open');
+      navLinks.classList.toggle('open');
+    });
+
+    // Close menu on link click
+    navLinksAll.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const route = link.getAttribute('data-route');
+        navToggle.classList.remove('open');
+        navLinks.classList.remove('open');
+        navigate(route);
+      });
+    });
+
+    function navigate(pageName) {
+      // Hide all pages
+      document.querySelectorAll('.page-section').forEach(section => {
+        section.classList.remove('active');
+      });
+
+      // Show requested page or 404
+      const pageElement = document.querySelector(`[data-page="${pageName}"]`);
+      if (pageElement) {
+        pageElement.classList.add('active');
+      } else {
+        document.querySelector('[data-page="not-found"]').classList.add('active');
+      }
+
+      // Update active nav link
+      navLinksAll.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-route') === pageName) {
+          link.classList.add('active');
+        }
+      });
+
+      // Update browser URL (for bookmarking)
+      const url = pageName === 'home' ? '/' : `/${pageName}`;
+      window.history.pushState({ page: pageName }, '', url);
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', (e) => {
+      const path = window.location.pathname;
+      const pageName = routeMap[path] || 'not-found';
+      navigate(pageName);
+    });
+
+    // Initialize router on page load
+    function initRouter() {
+      const path = window.location.pathname;
+      const pageName = routeMap[path] || 'not-found';
+      navigate(pageName);
+    }
+
+    initRouter();
+  </script>
+</body>
+</html>

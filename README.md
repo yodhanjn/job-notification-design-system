@@ -12,7 +12,17 @@ This repository contains the foundational design system for the Job Notification
 - `tokens.css` — color, spacing, typography, and transition tokens
 - `base.css` — global resets, typography, and layout utilities
 - `components.css` — components: top bar, header, cards, buttons, inputs, footer
-- `example.html` — a single-page example demonstrating structure and components
+- `example.html` — a single-page example demonstrating design tokens and components
+- `app.html` — full routing app with shared navigation and placeholder pages (/)
+
+## Included routes
+
+- `/` → Dashboard (home page)
+- `/saved` → Saved jobs
+- `/digest` → Digest view
+- `/settings` → Settings
+- `/proof` → Proof checklist
+- `/404` → Not found page (automatic)
 
 ## Usage
 
