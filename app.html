@@ -108,9 +108,9 @@
 <body>
   <!-- Navigation -->
   <nav class="nav-bar">
-    <div class="nav-brand">Job Notification App</div>
+    <div class="nav-brand">Job Notification Tracker</div>
     <ul class="nav-links" id="navLinks">
-      <li><a href="/" data-route="home">Dashboard</a></li>
+      <li><a href="/dashboard" data-route="dashboard">Dashboard</a></li>
       <li><a href="/saved" data-route="saved">Saved</a></li>
       <li><a href="/digest" data-route="digest">Digest</a></li>
       <li><a href="/settings" data-route="settings">Settings</a></li>
@@ -125,27 +125,22 @@
 
   <!-- Page Content -->
   <main class="app-container">
-    <!-- Dashboard / Home -->
-    <section class="page-section active" data-page="home">
+    <!-- Landing / Home -->
+    <section class="page-section" data-page="landing">
+      <div class="page-content" style="max-width: var(--max-text-width); padding-top: var(--space-64);">
+        <h1 class="page-heading">Stop Missing The Right Jobs.</h1>
+        <p class="page-subtext" style="margin-top: var(--space-16);">Precision-matched job discovery delivered daily at 9AM.</p>
+        <div style="margin-top: var(--space-24);">
+          <a href="/settings" id="ctaStart" class="btn btn-primary">Start Tracking</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="page-section" data-page="dashboard">
       <div class="page-content">
         <h1 class="page-heading">Dashboard</h1>
-        <p class="page-subtext">This section will be built in the next step.</p>
-      </div>
-    </section>
-
-    <!-- Saved -->
-    <section class="page-section" data-page="saved">
-      <div class="page-content">
-        <h1 class="page-heading">Saved</h1>
-        <p class="page-subtext">This section will be built in the next step.</p>
-      </div>
-    </section>
-
-    <!-- Digest -->
-    <section class="page-section" data-page="digest">
-      <div class="page-content">
-        <h1 class="page-heading">Digest</h1>
-        <p class="page-subtext">This section will be built in the next step.</p>
+        <p class="page-subtext">No jobs yet. In the next step, you will load a realistic dataset.</p>
       </div>
     </section>
 
@@ -153,7 +148,52 @@
     <section class="page-section" data-page="settings">
       <div class="page-content">
         <h1 class="page-heading">Settings</h1>
-        <p class="page-subtext">This section will be built in the next step.</p>
+        <p class="page-subtext" style="margin-bottom: var(--space-24);">Set up your preferences. These are placeholders only.</p>
+
+        <div class="card">
+          <label class="muted-small">Role keywords</label>
+          <input class="input" placeholder="e.g. Frontend Engineer, Product Designer" />
+
+          <div style="height: var(--space-16)"></div>
+
+          <label class="muted-small">Preferred locations</label>
+          <input class="input" placeholder="e.g. Remote, New York, Berlin" />
+
+          <div style="height: var(--space-16)"></div>
+
+          <label class="muted-small">Mode</label>
+          <select class="input">
+            <option>Remote</option>
+            <option>Hybrid</option>
+            <option>Onsite</option>
+          </select>
+
+          <div style="height: var(--space-16)"></div>
+
+          <label class="muted-small">Experience level</label>
+          <select class="input">
+            <option>Entry</option>
+            <option>Mid</option>
+            <option>Senior</option>
+          </select>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Saved -->
+    <section class="page-section" data-page="saved">
+      <div class="page-content">
+        <h1 class="page-heading">Saved</h1>
+        <p class="page-subtext">Your saved jobs will appear here. No data yet.</p>
+      </div>
+    </section>
+
+    <!-- Digest -->
+    <section class="page-section" data-page="digest">
+      <div class="page-content">
+        <h1 class="page-heading">Digest</h1>
+        <p class="page-subtext">Daily summary coming soon — a premium, curated digest sent each morning.</p>
       </div>
     </section>
 
@@ -161,7 +201,7 @@
     <section class="page-section" data-page="proof">
       <div class="page-content">
         <h1 class="page-heading">Proof</h1>
-        <p class="page-subtext">This section will be built in the next step.</p>
+        <p class="page-subtext">Placeholder for artifact collection and proofs.</p>
       </div>
     </section>
 
@@ -179,8 +219,8 @@
   <script>
     // Simple client-side router
     const routeMap = {
-      '/': 'home',
-      '/dashboard': 'home',
+      '/': 'landing',
+      '/dashboard': 'dashboard',
       '/saved': 'saved',
       '/digest': 'digest',
       '/settings': 'settings',
@@ -190,6 +230,7 @@
     const navToggle = document.getElementById('navToggle');
     const navLinks = document.getElementById('navLinks');
     const navLinksAll = navLinks.querySelectorAll('a');
+    const ctaStart = document.getElementById('ctaStart');
 
     // Hamburger menu toggle
     navToggle.addEventListener('click', () => {
@@ -207,6 +248,14 @@
         navigate(route);
       });
     });
+
+    // CTA navigates to settings
+    if (ctaStart) {
+      ctaStart.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigate('settings');
+      });
+    }
 
     function navigate(pageName) {
       // Hide all pages
@@ -231,7 +280,7 @@
       });
 
       // Update browser URL (for bookmarking)
-      const url = pageName === 'home' ? '/' : `/${pageName}`;
+      const url = pageName === 'landing' ? '/' : `/${pageName}`;
       window.history.pushState({ page: pageName }, '', url);
     }
 
