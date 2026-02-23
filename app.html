@@ -199,10 +199,10 @@
 
           <div style="height: var(--space-16)"></div>
 
-          <label class="muted-small">Preferred locations (multi-select)</label>
-          <select id="preferredLocations" class="input" multiple style="min-height:120px;">
-            <!-- options filled dynamically -->
-          </select>
+          <label class="muted-small">Preferred locations</label>
+          <div id="preferredLocationsContainer" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:var(--space-8); padding:var(--space-12); border:1px solid rgba(17,17,17,0.12); border-radius:var(--radius); max-height:200px; overflow-y:auto;">
+            <!-- checkboxes filled dynamically -->
+          </div>
 
           <div style="height: var(--space-16)"></div>
 
@@ -495,9 +495,9 @@
       const prefs = loadPreferences();
       if (!prefs) return;
       document.getElementById('roleKeywords').value = prefs.roleKeywords || '';
-      // preferredLocations is multi-select
+      // preferredLocations checkboxes
       const locs = prefs.preferredLocations || [];
-      const sel = document.getElementById('preferredLocations'); Array.from(sel.options).forEach(o=> o.selected = locs.includes(o.value));
+      document.querySelectorAll('[data-location-checkbox]').forEach(cb=> cb.checked = locs.includes(cb.value));
       document.getElementById('modeRemote').checked = (prefs.preferredMode||[]).includes('Remote');
       document.getElementById('modeHybrid').checked = (prefs.preferredMode||[]).includes('Hybrid');
       document.getElementById('modeOnsite').checked = (prefs.preferredMode||[]).includes('Onsite');
@@ -507,11 +507,27 @@
       document.getElementById('minMatchScoreValue').textContent = document.getElementById('minMatchScore').value;
     }
 
-    // fill preferredLocations options based on available locations
+    // fill preferredLocations checkboxes based on available locations
     (function populatePreferredLocations(){
-      const sel = document.getElementById('preferredLocations');
+      const container = document.getElementById('preferredLocationsContainer');
       const locs = Array.from(new Set(JOBS.map(j=>j.location))).sort();
-      locs.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+      locs.forEach(l=>{
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.gap = 'var(--space-8)';
+        label.style.cursor = 'pointer';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = l;
+        cb.setAttribute('data-location-checkbox', 'true');
+        const text = document.createElement('span');
+        text.textContent = l;
+        text.style.fontSize = '14px';
+        label.appendChild(cb);
+        label.appendChild(text);
+        container.appendChild(label);
+      });
     })();
 
     document.getElementById('minMatchScore').addEventListener('input', (e)=>{ document.getElementById('minMatchScoreValue').textContent = e.target.value; });
@@ -519,7 +535,7 @@
       e.preventDefault();
       const prefs = {
         roleKeywords: document.getElementById('roleKeywords').value,
-        preferredLocations: Array.from(document.getElementById('preferredLocations').selectedOptions).map(o=>o.value),
+        preferredLocations: Array.from(document.querySelectorAll('[data-location-checkbox]:checked')).map(cb=>cb.value),
         preferredMode: ['Remote','Hybrid','Onsite'].filter(m=> document.getElementById('mode'+m).checked ),
         experienceLevel: document.getElementById('experienceLevel').value,
         skills: document.getElementById('skillsPref').value.split(',').map(s=>s.trim()).filter(Boolean),
