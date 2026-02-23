@@ -173,7 +173,11 @@
                 <option value="oldest">Sort: Oldest</option>
                 <option value="salary-desc">Salary (high)</option>
                 <option value="salary-asc">Salary (low)</option>
+                <option value="match-desc">Match Score</option>
               </select>
+              <label style="display:flex; align-items:center; gap:8px; margin-left: var(--space-16);">
+                <input type="checkbox" id="showOnlyMatches" /> Show only jobs above my threshold
+              </label>
             </div>
           </form>
         </div>
@@ -187,35 +191,58 @@
     <section class="page-section" data-page="settings">
       <div class="page-content">
         <h1 class="page-heading">Settings</h1>
-        <p class="page-subtext" style="margin-bottom: var(--space-24);">Set up your preferences. These are placeholders only.</p>
+        <p class="page-subtext" style="margin-bottom: var(--space-24);">Set up your preferences. These preferences drive match scoring. Saved locally only.</p>
 
-        <div class="card">
-          <label class="muted-small">Role keywords</label>
-          <input class="input" placeholder="e.g. Frontend Engineer, Product Designer" />
-
-          <div style="height: var(--space-16)"></div>
-
-          <label class="muted-small">Preferred locations</label>
-          <input class="input" placeholder="e.g. Remote, New York, Berlin" />
+        <div class="card stack">
+          <label class="muted-small">Role keywords (comma-separated)</label>
+          <input id="roleKeywords" class="input" placeholder="e.g. Frontend Engineer, React" />
 
           <div style="height: var(--space-16)"></div>
 
-          <label class="muted-small">Mode</label>
-          <select class="input">
-            <option>Remote</option>
-            <option>Hybrid</option>
-            <option>Onsite</option>
+          <label class="muted-small">Preferred locations (multi-select)</label>
+          <select id="preferredLocations" class="input" multiple style="min-height:120px;">
+            <!-- options filled dynamically -->
           </select>
+
+          <div style="height: var(--space-16)"></div>
+
+          <label class="muted-small">Preferred mode</label>
+          <div style="display:flex; gap:var(--space-8);">
+            <label><input type="checkbox" id="modeRemote" /> Remote</label>
+            <label><input type="checkbox" id="modeHybrid" /> Hybrid</label>
+            <label><input type="checkbox" id="modeOnsite" /> Onsite</label>
+          </div>
 
           <div style="height: var(--space-16)"></div>
 
           <label class="muted-small">Experience level</label>
-          <select class="input">
-            <option>Entry</option>
-            <option>Mid</option>
-            <option>Senior</option>
+          <select id="experienceLevel" class="input">
+            <option value="">Any</option>
+            <option>Fresher</option>
+            <option>0-1</option>
+            <option>1-3</option>
+            <option>3-5</option>
           </select>
 
+          <div style="height: var(--space-16)"></div>
+
+          <label class="muted-small">Skills (comma-separated)</label>
+          <input id="skillsPref" class="input" placeholder="e.g. React, Node.js, SQL" />
+
+          <div style="height: var(--space-16)"></div>
+
+          <label class="muted-small">Minimum match score</label>
+          <div style="display:flex; gap: var(--space-16); align-items:center;">
+            <input id="minMatchScore" type="range" min="0" max="100" value="40" />
+            <div id="minMatchScoreValue" class="muted-small">40</div>
+          </div>
+
+          <div style="height: var(--space-16)"></div>
+
+          <div style="display:flex; gap:var(--space-8);">
+            <button id="savePrefs" class="btn btn-primary">Save Preferences</button>
+            <button id="clearPrefs" class="btn btn-secondary">Clear</button>
+          </div>
         </div>
       </div>
     </section>
@@ -420,6 +447,7 @@
     ];
 
     const savedKey = 'jn_saved_jobs_v1';
+    const prefsKey = 'jobTrackerPreferences';
 
     function formatPosted(days) {
       return days === 0 ? 'today' : (days === 1 ? '1 day ago' : `${days} days ago`);
@@ -451,6 +479,62 @@
       renderJobs(currentJobs);
       if (currentRoute === 'saved') renderSaved();
     }
+
+    /* Preferences: load/save */
+    function loadPreferences() {
+      const raw = localStorage.getItem(prefsKey);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch(e){ return null; }
+    }
+
+    function savePreferences(prefs) { localStorage.setItem(prefsKey, JSON.stringify(prefs)); }
+
+    function clearPreferences() { localStorage.removeItem(prefsKey); }
+
+    function populatePrefUI() {
+      const prefs = loadPreferences();
+      if (!prefs) return;
+      document.getElementById('roleKeywords').value = prefs.roleKeywords || '';
+      // preferredLocations is multi-select
+      const locs = prefs.preferredLocations || [];
+      const sel = document.getElementById('preferredLocations'); Array.from(sel.options).forEach(o=> o.selected = locs.includes(o.value));
+      document.getElementById('modeRemote').checked = (prefs.preferredMode||[]).includes('Remote');
+      document.getElementById('modeHybrid').checked = (prefs.preferredMode||[]).includes('Hybrid');
+      document.getElementById('modeOnsite').checked = (prefs.preferredMode||[]).includes('Onsite');
+      document.getElementById('experienceLevel').value = prefs.experienceLevel || '';
+      document.getElementById('skillsPref').value = (prefs.skills || []).join(', ');
+      document.getElementById('minMatchScore').value = prefs.minMatchScore != null ? prefs.minMatchScore : 40;
+      document.getElementById('minMatchScoreValue').textContent = document.getElementById('minMatchScore').value;
+    }
+
+    // fill preferredLocations options based on available locations
+    (function populatePreferredLocations(){
+      const sel = document.getElementById('preferredLocations');
+      const locs = Array.from(new Set(JOBS.map(j=>j.location))).sort();
+      locs.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); });
+    })();
+
+    document.getElementById('minMatchScore').addEventListener('input', (e)=>{ document.getElementById('minMatchScoreValue').textContent = e.target.value; });
+    document.getElementById('savePrefs').addEventListener('click', (e)=>{
+      e.preventDefault();
+      const prefs = {
+        roleKeywords: document.getElementById('roleKeywords').value,
+        preferredLocations: Array.from(document.getElementById('preferredLocations').selectedOptions).map(o=>o.value),
+        preferredMode: ['Remote','Hybrid','Onsite'].filter(m=> document.getElementById('mode'+m).checked ),
+        experienceLevel: document.getElementById('experienceLevel').value,
+        skills: document.getElementById('skillsPref').value.split(',').map(s=>s.trim()).filter(Boolean),
+        minMatchScore: parseInt(document.getElementById('minMatchScore').value,10)
+      };
+      savePreferences(prefs);
+      populatePrefUI();
+      applyFilters();
+      alert('Preferences saved locally');
+    });
+    document.getElementById('clearPrefs').addEventListener('click', (e)=>{ e.preventDefault(); clearPreferences(); location.reload(); });
+
+    // show preferences banner if missing
+    function prefsExist() { return !!loadPreferences(); }
+
 
     // Build filter options
     const locations = Array.from(new Set(JOBS.map(j=>j.location))).sort();
@@ -513,19 +597,85 @@
     const srcInput = document.getElementById('source');
     const sortInput = document.getElementById('sort');
 
+    function computeMatchScore(job, prefs) {
+      if (!prefs) return 0;
+      let score = 0;
+      const rk = (prefs.roleKeywords||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+      const desc = (job.description||'').toLowerCase();
+      const title = (job.title||'').toLowerCase();
+      // +25 if any roleKeyword appears in job.title
+      if (rk.some(k => title.includes(k))) score += 25;
+      // +15 if any roleKeyword appears in job.description
+      if (rk.some(k => desc.includes(k))) score += 15;
+      // +15 if job.location matches preferredLocations
+      if ((prefs.preferredLocations||[]).includes(job.location)) score += 15;
+      // +10 if job.mode matches preferredMode
+      if ((prefs.preferredMode||[]).includes(job.mode)) score += 10;
+      // +10 if job.experience matches experienceLevel
+      if (prefs.experienceLevel && job.experience === prefs.experienceLevel) score += 10;
+      // +15 if overlap between job.skills and user.skills
+      if ((prefs.skills||[]).some(s => job.skills.map(js=>js.toLowerCase()).includes(s.toLowerCase()))) score += 15;
+      // +5 if postedDaysAgo <= 2
+      if (job.postedDaysAgo != null && job.postedDaysAgo <= 2) score += 5;
+      // +5 if source is LinkedIn
+      if (job.source === 'LinkedIn') score += 5;
+      return Math.min(100, score);
+    }
+
     function applyFilters() {
+      const prefs = loadPreferences();
       let res = JOBS.slice();
       const q = qInput.value.trim().toLowerCase();
-      if (q) res = res.filter(j=> (j.title+j.company).toLowerCase().includes(q));
+      if (q) res = res.filter(j=> (j.title + ' ' + j.company).toLowerCase().includes(q));
       if (locInput.value) res = res.filter(j=> j.location === locInput.value);
       if (modeInput.value) res = res.filter(j=> j.mode === modeInput.value);
       if (expInput.value) res = res.filter(j=> j.experience === expInput.value);
       if (srcInput.value) res = res.filter(j=> j.source === srcInput.value);
+
+      // compute match scores when prefs exist
+      res = res.map(j => ({ ...j, matchScore: computeMatchScore(j, prefs) }));
+
+      // show-only-matches toggle
+      const showOnly = document.getElementById('showOnlyMatches').checked;
+      const minScore = prefs ? (prefs.minMatchScore != null ? prefs.minMatchScore : 40) : 40;
+      if (showOnly) {
+        if (!prefs) {
+          // banner will indicate prefs missing; do not filter further
+          // handled elsewhere
+        } else {
+          res = res.filter(j => j.matchScore >= minScore);
+        }
+      }
+
       const sort = sortInput.value;
       if (sort === 'latest') res.sort((a,b)=> a.postedDaysAgo - b.postedDaysAgo);
       else if (sort === 'oldest') res.sort((a,b)=> b.postedDaysAgo - a.postedDaysAgo);
       else if (sort === 'salary-desc') res.sort((a,b)=> parseSalaryToNumber(b.salaryRange) - parseSalaryToNumber(a.salaryRange));
       else if (sort === 'salary-asc') res.sort((a,b)=> parseSalaryToNumber(a.salaryRange) - parseSalaryToNumber(b.salaryRange));
+      else if (sort === 'match-desc') res.sort((a,b)=> (b.matchScore||0) - (a.matchScore||0));
+
+      // handle edge cases: prefs missing banner
+      const bannerId = 'prefsBanner';
+      let banner = document.getElementById(bannerId);
+      if (!banner) {
+        banner = document.createElement('div'); banner.id = bannerId; banner.style.marginBottom = 'var(--space-16)';
+        banner.className = 'card';
+        const container = document.querySelector('[data-page="dashboard"] .page-content');
+        container.insertBefore(banner, container.querySelector('.card'));
+      }
+      if (!prefs) {
+        banner.innerHTML = '<div class="muted-small">Set your preferences to activate intelligent matching.</div>';
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+
+      // render or show no-results message
+      if (res.length === 0) {
+        if (showOnly) document.getElementById('noResults').textContent = 'No roles match your criteria. Adjust filters or lower threshold.';
+        else document.getElementById('noResults').textContent = 'No jobs match your search.';
+      }
+
       renderJobs(res);
     }
 
