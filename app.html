@@ -259,7 +259,9 @@
     <section class="page-section" data-page="digest">
       <div class="page-content">
         <h1 class="page-heading">Digest</h1>
-        <p class="page-subtext">Daily summary coming soon — a premium, curated digest sent each morning.</p>
+        <p class="page-subtext">Your personalized 9AM digest of top matching roles.</p>
+
+        <div id="digestContainer" style="margin-top: var(--space-24);"></div>
       </div>
     </section>
 
@@ -742,6 +744,153 @@
       list.forEach(job => savedContainer.appendChild(buildCard(job)));
     }
 
+    // Digest page rendering
+    function getTodayKey() {
+      const now = new Date();
+      return `jobTrackerDigest_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function generateDigest() {
+      const prefs = loadPreferences();
+      if (!prefs) {
+        document.getElementById('digestContainer').innerHTML = '<div class="card muted-small">Set preferences to generate a personalized digest.</div>';
+        return;
+      }
+
+      // Get all jobs, compute scores, sort by matchScore desc then postedDaysAgo asc, take top 10
+      let jobs = JOBS.map(j => ({ ...j, matchScore: computeMatchScore(j, prefs) }));
+      jobs = jobs.sort((a, b) => {
+        if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+        return a.postedDaysAgo - b.postedDaysAgo;
+      }).slice(0, 10);
+
+      if (jobs.length === 0) {
+        document.getElementById('digestContainer').innerHTML = '<div class="card muted-small">No matching roles today. Check again tomorrow.</div>';
+        return;
+      }
+
+      // Store digest
+      const key = getTodayKey();
+      localStorage.setItem(key, JSON.stringify(jobs));
+
+      renderDigest(jobs);
+    }
+
+    function loadTodayDigest() {
+      const key = getTodayKey();
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch(e) { return null; }
+    }
+
+    function renderDigest(jobs) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+      let html = `
+        <div style="background: var(--color-background); padding: var(--space-40); border-radius: var(--radius);">
+          <div style="background: white; max-width: 720px; margin: 0 auto; padding: var(--space-40); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <h2 style="font-family: Georgia, serif; font-size: 28px; margin: 0 0 var(--space-8) 0; color: var(--color-text);">Top 10 Jobs For You</h2>
+            <p style="font-size: 14px; color: rgba(17,17,17,0.6); margin: 0 0 var(--space-24) 0;">9AM Digest • ${dateStr}</p>
+
+            <div style="border-top: 1px solid rgba(17,17,17,0.08); padding-top: var(--space-24);">
+      `;
+
+      jobs.forEach((job, idx) => {
+        html += `
+          <div style="margin-bottom: var(--space-24); padding-bottom: var(--space-24); border-bottom: 1px solid rgba(17,17,17,0.06);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div style="flex: 1;">
+                <h3 style="font-family: Georgia, serif; font-size: 18px; margin: 0 0 var(--space-8) 0; color: var(--color-text);">${idx + 1}. ${job.title}</h3>
+                <p style="margin: 0 0 var(--space-8) 0; font-size: 14px; color: rgba(17,17,17,0.7);">${job.company} • ${job.location} • ${job.experience}</p>
+              </div>
+              <div style="background: ${job.matchScore >= 80 ? '#16a34a' : job.matchScore >= 60 ? '#f59e0b' : job.matchScore >= 40 ? '#f3f4f6' : '#9ca3af'}; color: ${job.matchScore >= 40 && job.matchScore < 60 ? '#111827' : 'white'}; padding: var(--space-8) var(--space-12); border-radius: 18px; font-weight: 600; font-size: 13px; white-space: nowrap; margin-left: var(--space-16);">
+                ${Math.round(job.matchScore)}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+            </div>
+
+            <div style="margin-top: var(--space-24); padding-top: var(--space-24); border-top: 1px solid rgba(17,17,17,0.08); text-align: center;">
+              <p style="font-size: 13px; color: rgba(17,17,17,0.6); margin: 0;">This digest was generated based on your preferences.</p>
+              <p style="font-size: 12px; color: rgba(17,17,17,0.5); margin: var(--space-8) 0 0 0; font-style: italic;">Demo Mode: Daily 9AM trigger simulated manually.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-24); display: flex; gap: var(--space-8); flex-wrap: wrap;">
+          <button id="copyDigest" class="btn btn-primary">Copy to Clipboard</button>
+          <button id="emailDigest" class="btn btn-secondary">Create Email Draft</button>
+          <button id="regenerateDigest" class="btn btn-secondary">Regenerate</button>
+        </div>
+      `;
+
+      document.getElementById('digestContainer').innerHTML = html;
+
+      // Attach event listeners
+      document.getElementById('copyDigest').addEventListener('click', () => copyDigestToClipboard(jobs));
+      document.getElementById('emailDigest').addEventListener('click', () => createEmailDraft(jobs, dateStr));
+      document.getElementById('regenerateDigest').addEventListener('click', () => {
+        localStorage.removeItem(getTodayKey());
+        generateDigest();
+      });
+    }
+
+    function copyDigestToClipboard(jobs) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      let text = `Top 10 Jobs For You\n9AM Digest • ${dateStr}\n\n`;
+      jobs.forEach((job, idx) => {
+        text += `${idx + 1}. ${job.title}\n${job.company} • ${job.location} • ${job.experience}\nMatch: ${Math.round(job.matchScore)}\n\n`;
+      });
+      text += `This digest was generated based on your preferences.`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Digest copied to clipboard!');
+      });
+    }
+
+    function createEmailDraft(jobs, dateStr) {
+      const now = new Date();
+      const subject = 'My 9AM Job Digest';
+      let body = `Top 10 Jobs For You\n9AM Digest • ${dateStr}\n\n`;
+      jobs.forEach((job, idx) => {
+        body += `${idx + 1}. ${job.title}\n${job.company} • ${job.location} • ${job.experience}\nMatch: ${Math.round(job.matchScore)}\nApply: ${job.applyUrl}\n\n`;
+      });
+      body += `This digest was generated based on your preferences.`;
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    }
+
+    function renderDigestPage() {
+      const prefs = loadPreferences();
+      if (!prefs) {
+        document.getElementById('digestContainer').innerHTML = `
+          <div class="card">
+            <p class="muted-small">Set preferences to generate a personalized digest.</p>
+            <a href="/settings" class="btn btn-primary" style="margin-top: var(--space-16);">Go to Settings</a>
+          </div>
+        `;
+        return;
+      }
+
+      const existing = loadTodayDigest();
+      if (existing) {
+        renderDigest(existing);
+      } else {
+        document.getElementById('digestContainer').innerHTML = `
+          <div class="card">
+            <p class="muted-small">Generate today's digest to see your top 10 matching roles.</p>
+            <button id="generateButton" class="btn btn-primary" style="margin-top: var(--space-16);">Generate Today's 9AM Digest (Simulated)</button>
+          </div>
+        `;
+        document.getElementById('generateButton').addEventListener('click', generateDigest);
+      }
+    }
+
     // Ensure saved page shows updated content on route change
     // Hook into navigate to call renderSaved when needed by overwriting navigate
     const originalNavigate = navigate;
@@ -750,6 +899,7 @@
       currentRoute = pageName;
       if (pageName === 'dashboard') applyFilters();
       if (pageName === 'saved') renderSaved();
+      if (pageName === 'digest') renderDigestPage();
     };
 
   </script>
