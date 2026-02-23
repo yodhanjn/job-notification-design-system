@@ -554,6 +554,36 @@
       const salary = document.createElement('div'); salary.className='muted-small'; salary.style.marginTop='8px'; salary.textContent = `${job.salaryRange} • ${job.source} • ${formatPosted(job.postedDaysAgo)}`;
       left.appendChild(title); left.appendChild(meta); left.appendChild(salary);
 
+      // Match score badge
+      const score = typeof job.matchScore === 'number' ? job.matchScore : null;
+      if (score !== null) {
+        const badge = document.createElement('div');
+        badge.style.display = 'inline-flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.minWidth = '44px';
+        badge.style.height = '28px';
+        badge.style.padding = '4px 8px';
+        badge.style.borderRadius = '18px';
+        badge.style.fontWeight = '600';
+        badge.style.marginLeft = '12px';
+        badge.style.fontSize = '13px';
+        badge.setAttribute('aria-label', `Match score ${score}`);
+        // color mapping
+        function scoreColor(n) {
+          if (n >= 80) return { bg: '#16a34a', color: 'white' }; // green
+          if (n >= 60) return { bg: '#f59e0b', color: 'white' }; // amber
+          if (n >= 40) return { bg: '#f3f4f6', color: '#111827' }; // neutral (light)
+          return { bg: '#9ca3af', color: 'white' }; // grey
+        }
+        const c = scoreColor(score);
+        badge.style.background = c.bg;
+        badge.style.color = c.color;
+        badge.textContent = `${Math.round(score)}`;
+        // append badge next to title
+        title.appendChild(badge);
+      }
+
       const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
       const viewBtn = document.createElement('button'); viewBtn.className='btn btn-secondary'; viewBtn.textContent='View';
       viewBtn.addEventListener('click', ()=> openModal(job));
