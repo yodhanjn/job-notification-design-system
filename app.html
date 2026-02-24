@@ -168,6 +168,13 @@
               <select id="source" class="input" style="width:200px;">
                 <option value="">Any source</option>
               </select>
+              <select id="status" class="input" style="width:180px;">
+                <option value="">All statuses</option>
+                <option>Not Applied</option>
+                <option>Applied</option>
+                <option>Rejected</option>
+                <option>Selected</option>
+              </select>
               <select id="sort" class="input" style="width:200px;">
                 <option value="latest">Sort: Latest</option>
                 <option value="oldest">Sort: Oldest</option>
@@ -482,6 +489,65 @@
       if (currentRoute === 'saved') renderSaved();
     }
 
+    /* Job Status Tracking */
+    const statusKey = 'jobTrackerStatus';
+    const statusUpdatesKey = 'jobTrackerStatusUpdates';
+
+    function getJobStatus(jobId) {
+      try {
+        const statuses = JSON.parse(localStorage.getItem(statusKey)) || {};
+        return statuses[jobId] || 'Not Applied';
+      } catch(e) { return 'Not Applied'; }
+    }
+
+    function setJobStatus(jobId, status) {
+      try {
+        const statuses = JSON.parse(localStorage.getItem(statusKey)) || {};
+        statuses[jobId] = status;
+        localStorage.setItem(statusKey, JSON.stringify(statuses));
+        
+        // Log update with timestamp
+        const updates = JSON.parse(localStorage.getItem(statusUpdatesKey)) || [];
+        const job = JOBS.find(j => j.id === jobId);
+        if (job) {
+          updates.push({
+            jobId,
+            title: job.title,
+            company: job.company,
+            status,
+            timestamp: new Date().toISOString()
+          });
+          // Keep only last 20 updates
+          if (updates.length > 20) updates.shift();
+          localStorage.setItem(statusUpdatesKey, JSON.stringify(updates));
+        }
+      } catch(e) {}
+    }
+
+    function getStatusColor(status) {
+      if (status === 'Applied') return '#3b82f6'; // blue
+      if (status === 'Rejected') return '#ef4444'; // red
+      if (status === 'Selected') return '#10b981'; // green
+      return '#d1d5db'; // neutral grey
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.style.position = 'fixed';
+      toast.style.bottom = '20px';
+      toast.style.right = '20px';
+      toast.style.background = 'var(--color-text)';
+      toast.style.color = 'white';
+      toast.style.padding = 'var(--space-12) var(--space-16)';
+      toast.style.borderRadius = 'var(--radius)';
+      toast.style.fontSize = '14px';
+      toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      toast.style.zIndex = '9999';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
     /* Preferences: load/save */
     function loadPreferences() {
       const raw = localStorage.getItem(prefsKey);
@@ -554,6 +620,7 @@
 
     function buildCard(job) {
       const saved = isSaved(job.id);
+      const currentStatus = getJobStatus(job.id);
       const card = document.createElement('div'); card.className = 'card';
       card.style.display = 'flex'; card.style.justifyContent='space-between'; card.style.alignItems='flex-start';
       const left = document.createElement('div'); left.style.flex='1';
@@ -561,6 +628,21 @@
       const meta = document.createElement('div'); meta.className='muted-small'; meta.style.marginTop='8px'; meta.textContent = `${job.company} • ${job.location} • ${job.mode} • ${job.experience}`;
       const salary = document.createElement('div'); salary.className='muted-small'; salary.style.marginTop='8px'; salary.textContent = `${job.salaryRange} • ${job.source} • ${formatPosted(job.postedDaysAgo)}`;
       left.appendChild(title); left.appendChild(meta); left.appendChild(salary);
+
+      // Status badge
+      const statusBadge = document.createElement('div');
+      statusBadge.style.display = 'inline-flex';
+      statusBadge.style.alignItems = 'center';
+      statusBadge.style.justifyContent = 'center';
+      statusBadge.style.padding = '4px 12px';
+      statusBadge.style.borderRadius = '12px';
+      statusBadge.style.fontSize = '12px';
+      statusBadge.style.fontWeight = '500';
+      statusBadge.style.marginLeft = '12px';
+      statusBadge.style.background = getStatusColor(currentStatus);
+      statusBadge.style.color = 'white';
+      statusBadge.textContent = currentStatus;
+      title.appendChild(statusBadge);
 
       // Match score badge
       const score = typeof job.matchScore === 'number' ? job.matchScore : null;
@@ -574,7 +656,7 @@
         badge.style.padding = '4px 8px';
         badge.style.borderRadius = '18px';
         badge.style.fontWeight = '600';
-        badge.style.marginLeft = '12px';
+        badge.style.marginLeft = '8px';
         badge.style.fontSize = '13px';
         badge.setAttribute('aria-label', `Match score ${score}`);
         // color mapping
@@ -592,14 +674,41 @@
         title.appendChild(badge);
       }
 
-      const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
+      const actions = document.createElement('div'); actions.style.display='flex'; actions.style.flexDirection='column'; actions.style.gap='8px';
+      
+      // Status button group
+      const statusGroup = document.createElement('div'); statusGroup.style.display='flex'; statusGroup.style.gap='4px';
+      const statuses = ['Not Applied', 'Applied', 'Rejected', 'Selected'];
+      const oldChangeStatus = (newStatus) => {
+        setJobStatus(job.id, newStatus);
+        showToast(`Status updated: ${newStatus}`);
+        applyFilters();
+      };
+      statuses.forEach(status => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary';
+        btn.style.fontSize = '11px';
+        btn.style.padding = '4px 8px';
+        btn.textContent = status;
+        if (status === currentStatus) {
+          btn.style.background = getStatusColor(status);
+          btn.style.color = 'white';
+          btn.style.border = 'none';
+        }
+        btn.addEventListener('click', ()=> oldChangeStatus(status));
+        statusGroup.appendChild(btn);
+      });
+      actions.appendChild(statusGroup);
+
+      const buttonRow = document.createElement('div'); buttonRow.style.display='flex'; buttonRow.style.gap='8px';
       const viewBtn = document.createElement('button'); viewBtn.className='btn btn-secondary'; viewBtn.textContent='View';
       viewBtn.addEventListener('click', ()=> openModal(job));
       const saveBtn = document.createElement('button'); saveBtn.className='btn'; saveBtn.textContent = saved ? 'Saved' : 'Save';
       saveBtn.style.border = '1px solid rgba(17,17,17,0.12)';
       saveBtn.addEventListener('click', ()=> { toggleSave(job.id); });
       const applyBtn = document.createElement('a'); applyBtn.className='btn btn-primary'; applyBtn.textContent='Apply'; applyBtn.href = job.applyUrl; applyBtn.target='_blank'; applyBtn.rel='noopener';
-      actions.appendChild(viewBtn); actions.appendChild(saveBtn); actions.appendChild(applyBtn);
+      buttonRow.appendChild(viewBtn); buttonRow.appendChild(saveBtn); buttonRow.appendChild(applyBtn);
+      actions.appendChild(buttonRow);
 
       card.appendChild(left); card.appendChild(actions);
       return card;
@@ -669,6 +778,10 @@
       if (modeInput.value) res = res.filter(j=> j.mode === modeInput.value);
       if (expInput.value) res = res.filter(j=> j.experience === expInput.value);
       if (srcInput.value) res = res.filter(j=> j.source === srcInput.value);
+      if (document.getElementById('status').value) {
+        const statusFilter = document.getElementById('status').value;
+        res = res.filter(j=> getJobStatus(j.id) === statusFilter);
+      }
 
       // compute match scores when prefs exist
       res = res.map(j => ({ ...j, matchScore: computeMatchScore(j, prefs) }));
@@ -717,7 +830,7 @@
       renderJobs(res);
     }
 
-    [qInput, locInput, modeInput, expInput, srcInput, sortInput].forEach(el => el && el.addEventListener('input', applyFilters));
+    [qInput, locInput, modeInput, expInput, srcInput, sortInput, document.getElementById('status')].forEach(el => el && el.addEventListener('input', applyFilters));
 
     // Populate source dropdown
     const sources = Array.from(new Set(JOBS.map(j=>j.source))).sort();
@@ -831,6 +944,15 @@
 
       document.getElementById('digestContainer').innerHTML = html;
 
+      // Add status updates section
+      const updatesHtml = renderDigestUpdates();
+      if (updatesHtml) {
+        const container = document.getElementById('digestContainer');
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = updatesHtml;
+        container.appendChild(wrapper.firstElementChild);
+      }
+
       // Attach event listeners
       document.getElementById('copyDigest').addEventListener('click', () => copyDigestToClipboard(jobs));
       document.getElementById('emailDigest').addEventListener('click', () => createEmailDraft(jobs, dateStr));
@@ -863,6 +985,61 @@
       body += `This digest was generated based on your preferences.`;
       const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
+    }
+
+    function renderDigestUpdates() {
+      const statusUpdatesKey = 'jobTrackerStatusUpdates';
+      const updates = JSON.parse(localStorage.getItem(statusUpdatesKey)) || [];
+      if (!updates || updates.length === 0) return '';
+
+      // Get last 10 updates
+      const recent = updates.slice(-10).reverse();
+      
+      let html = `
+        <div style="margin-top: var(--space-40); padding: var(--space-24); background: white; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+          <h3 style="font-family: Georgia, serif; font-size: 20px; margin: 0 0 var(--space-16) 0; color: var(--color-text);">Recent Status Updates</h3>
+          <div style="display: flex; flex-direction: column; gap: var(--space-12);">
+      `;
+
+      recent.forEach(update => {
+        const date = new Date(update.timestamp);
+        const timeAgo = formatTimeAgo(date);
+        const badgeBg = getStatusColor(update.status);
+        
+        html += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-12); background: rgba(17,17,17,0.02); border-radius: var(--radius);">
+            <div style="flex: 1;">
+              <p style="margin: 0 0 var(--space-4) 0; font-size: 14px; color: var(--color-text); font-weight: 500;">${update.title}</p>
+              <p style="margin: 0; font-size: 12px; color: rgba(17,17,17,0.6);">${update.company} • ${timeAgo}</p>
+            </div>
+            <div style="background: ${badgeBg}; color: white; padding: var(--space-6) var(--space-12); border-radius: 12px; font-size: 12px; font-weight: 500; white-space: nowrap; margin-left: var(--space-12);">
+              ${update.status}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+
+      return html;
+    }
+
+    function formatTimeAgo(date) {
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
     }
 
     function renderDigestPage() {
