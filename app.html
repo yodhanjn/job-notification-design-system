@@ -280,6 +280,29 @@
       </div>
     </section>
 
+    <!-- Test Checklist -->
+    <section class="page-section" data-page="test">
+      <div class="page-content" style="max-width: 800px;">
+        <h1 class="page-heading">Test Checklist</h1>
+        <div id="testSummary" style="margin-top: var(--space-24); padding: var(--space-16); background: rgba(17,17,17,0.02); border-radius: var(--radius); border: 1px solid rgba(17,17,17,0.08);">
+          <div style="font-size: 16px; font-weight: 600; color: var(--color-text);">Tests Passed: <span id="testCount">0</span> / 10</div>
+          <div id="testWarning" style="margin-top: var(--space-12); color: var(--color-accent); font-size: 14px; display: none;">⚠️ Resolve all issues before shipping.</div>
+        </div>
+        <div id="testChecklistContainer" style="margin-top: var(--space-24);"></div>
+        <div style="margin-top: var(--space-24); display: flex; gap: var(--space-12);">
+          <a href="/jt/08-ship" class="btn btn-primary">Go to Ship Gate →</a>
+          <button id="resetTestBtn" class="btn btn-secondary">Reset Test Status</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ship Gate -->
+    <section class="page-section" data-page="ship">
+      <div class="page-content" style="max-width: 800px; text-align: center; padding: var(--space-64) var(--space-24);">
+        <div id="shipContent"></div>
+      </div>
+    </section>
+
     <!-- 404 Not Found -->
     <section class="page-section" data-page="not-found">
       <div class="not-found-container">
@@ -314,7 +337,9 @@
       '/saved': 'saved',
       '/digest': 'digest',
       '/settings': 'settings',
-      '/proof': 'proof'
+      '/proof': 'proof',
+      '/jt/07-test': 'test',
+      '/jt/08-ship': 'ship'
     };
 
     const navToggle = document.getElementById('navToggle');
@@ -348,6 +373,12 @@
     }
 
     function navigate(pageName) {
+      // Ship gate lock: prevent navigation to ship if tests not complete
+      if (pageName === 'ship' && !areAllTestsComplete()) {
+        showToast('Complete all tests before shipping');
+        return;
+      }
+
       // Hide all pages
       document.querySelectorAll('.page-section').forEach(section => {
         section.classList.remove('active');
@@ -357,6 +388,9 @@
       const pageElement = document.querySelector(`[data-page="${pageName}"]`);
       if (pageElement) {
         pageElement.classList.add('active');
+        // Trigger page-specific setup
+        if (pageName === 'test') renderTestChecklist();
+        if (pageName === 'ship') renderShipGate();
       } else {
         document.querySelector('[data-page="not-found"]').classList.add('active');
       }
@@ -1040,6 +1074,151 @@
       if (diffDays < 7) return `${diffDays}d ago`;
       
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+    }
+
+    /* Test Checklist System */
+    const TEST_STATUS_KEY = 'jobTrackerTestStatus';
+    
+    const TEST_ITEMS = [
+      { id: 1, label: 'Preferences persist after refresh', hint: 'Set preferences on /settings, refresh page, verify values load' },
+      { id: 2, label: 'Match score calculates correctly', hint: 'Review displayed match scores on dashboard, verify 0-100 range' },
+      { id: 3, label: '"Show only matches" toggle works', hint: 'Enable show-only-matches on dashboard, verify filtered to 40+ score jobs' },
+      { id: 4, label: 'Save job persists after refresh', hint: 'Save a job, refresh page, check /saved page shows it' },
+      { id: 5, label: 'Apply opens in new tab', hint: 'Click Apply on any job, verify new tab opens' },
+      { id: 6, label: 'Status update persists after refresh', hint: 'Change a job status, refresh, verify status remains' },
+      { id: 7, label: 'Status filter works correctly', hint: 'Set status on a job, use filter dropdown to view only that status' },
+      { id: 8, label: 'Digest generates top 10 by score', hint: 'Generate digest, verify jobs sorted by match score DESC' },
+      { id: 9, label: 'Digest persists for the day', hint: 'Generate digest, refresh, verify same digest loads (not regenerated)' },
+      { id: 10, label: 'No console errors on main pages', hint: 'Open DevTools console, navigate through pages, verify no errors' }
+    ];
+
+    /* Test Status Management */
+    function getTestStatus() {
+      const stored = localStorage.getItem(TEST_STATUS_KEY);
+      if (!stored) return {};
+      try { return JSON.parse(stored); } catch(e) { return {}; }
+    }
+
+    function saveTestStatus(status) {
+      localStorage.setItem(TEST_STATUS_KEY, JSON.stringify(status));
+      updateTestSummary();
+    }
+
+    function setTestItem(id, checked) {
+      const status = getTestStatus();
+      if (checked) {
+        status[id] = true;
+      } else {
+        delete status[id];
+      }
+      saveTestStatus(status);
+    }
+
+    function areAllTestsComplete() {
+      const status = getTestStatus();
+      return TEST_ITEMS.length === Object.keys(status).length;
+    }
+
+    function countPassedTests() {
+      const status = getTestStatus();
+      return Object.keys(status).length;
+    }
+
+    function updateTestSummary() {
+      const passed = countPassedTests();
+      document.getElementById('testCount').textContent = passed;
+      const warning = document.getElementById('testWarning');
+      if (warning) {
+        warning.style.display = passed < 10 ? 'block' : 'none';
+      }
+    }
+
+    /* Render Test Checklist */
+    function renderTestChecklist() {
+      const container = document.getElementById('testChecklistContainer');
+      const status = getTestStatus();
+      
+      let html = '<div style="display: flex; flex-direction: column; gap: var(--space-16);">';
+      
+      TEST_ITEMS.forEach(item => {
+        const isChecked = status[item.id] === true;
+        html += `
+          <div style="display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-16); background: white; border-radius: var(--radius); border: 1px solid rgba(17,17,17,0.08); transition: all 0.2s ease;">
+            <input 
+              type="checkbox" 
+              id="test-${item.id}" 
+              ${isChecked ? 'checked' : ''} 
+              style="margin-top: 2px; cursor: pointer; accent-color: var(--color-accent);"
+              data-test-id="${item.id}"
+            >
+            <div style="flex: 1;">
+              <label for="test-${item.id}" style="cursor: pointer; font-weight: 500; color: var(--color-text); display: block; margin-bottom: 4px;">
+                ${item.label}
+              </label>
+              <div style="font-size: 12px; color: rgba(17,17,17,0.6); font-style: italic;">
+                💡 ${item.hint}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      container.innerHTML = html;
+
+      // Attach event listeners
+      document.querySelectorAll('input[data-test-id]').forEach(input => {
+        input.addEventListener('change', (e) => {
+          setTestItem(parseInt(e.target.dataset.testId), e.target.checked);
+        });
+      });
+
+      // Attach reset button
+      document.getElementById('resetTestBtn').addEventListener('click', () => {
+        if (confirm('Reset all test checks? This cannot be undone.')) {
+          localStorage.removeItem(TEST_STATUS_KEY);
+          renderTestChecklist();
+          updateTestSummary();
+        }
+      });
+
+      updateTestSummary();
+    }
+
+    /* Render Ship Gate */
+    function renderShipGate() {
+      const container = document.getElementById('shipContent');
+      const allComplete = areAllTestsComplete();
+
+      if (allComplete) {
+        container.innerHTML = `
+          <div style="padding: var(--space-64) var(--space-24);">
+            <h1 class="page-heading" style="font-size: 48px; margin-bottom: var(--space-16);">✅ Ready to Ship</h1>
+            <p class="page-subtext" style="margin-bottom: var(--space-24);">All tests passed! Your Job Notification App is production-ready.</p>
+            <div style="padding: var(--space-24); background: #f0fdf4; border-radius: var(--radius); border: 1px solid #86efac; margin-bottom: var(--space-24);">
+              <p style="margin: 0; color: #166534; font-size: 14px; font-weight: 500;">✓ All 10 critical test cases verified</p>
+              <p style="margin: var(--space-8) 0 0 0; color: #166534; font-size: 13px;">The app is ready for production deployment.</p>
+            </div>
+            <div style="display: flex; gap: var(--space-12); justify-content: center;">
+              <a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
+              <a href="/jt/07-test" class="btn btn-secondary">Review Tests</a>
+            </div>
+          </div>
+        `;
+      } else {
+        const passed = countPassedTests();
+        container.innerHTML = `
+          <div style="padding: var(--space-64) var(--space-24);">
+            <h1 class="page-heading" style="font-size: 48px; margin-bottom: var(--space-16);">🔒 Ship Gate Locked</h1>
+            <p class="page-subtext" style="margin-bottom: var(--space-24);">Complete all tests before shipping.</p>
+            <div style="padding: var(--space-24); background: #fef2f2; border-radius: var(--radius); border: 1px solid #fecaca; margin-bottom: var(--space-24);">
+              <p style="margin: 0; color: #991b1b; font-size: 14px; font-weight: 500;">⚠️ Tests Passed: ${passed} / 10</p>
+              <p style="margin: var(--space-8) 0 0 0; color: #991b1b; font-size: 13px;">You must complete all ${10 - passed} remaining test(s) before shipping.</p>
+            </div>
+            <a href="/jt/07-test" class="btn btn-primary">Complete Tests</a>
+          </div>
+        `;
+      }
     }
 
     function renderDigestPage() {
